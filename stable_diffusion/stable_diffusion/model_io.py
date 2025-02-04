@@ -8,14 +8,15 @@ from huggingface_hub import hf_hub_download
 from mlx.utils import tree_unflatten
 
 from .clip import CLIPTextModel
-from .config import AutoencoderConfig, CLIPTextModelConfig, DiffusionConfig, UNetConfig
+from .config import AutoencoderConfig, CLIPTextModelConfig, DiffusionConfig, DiffusionConfigFlowMatch, UNetConfig
 from .tokenizer import Tokenizer
 from .unet import UNetModel
 from .vae import Autoencoder
 
 _DEFAULT_MODEL = "stabilityai/stable-diffusion-2-1-base"
+
 _MODELS = {
-    # See https://huggingface.co/stabilityai/sdxl-turbo for the model details and license
+    # Existing models (example from your MLX code)
     "stabilityai/sdxl-turbo": {
         "unet_config": "unet/config.json",
         "unet": "unet/diffusion_pytorch_model.safetensors",
@@ -31,8 +32,69 @@ _MODELS = {
         "tokenizer_2_vocab": "tokenizer_2/vocab.json",
         "tokenizer_2_merges": "tokenizer_2/merges.txt",
     },
-    # See https://huggingface.co/stabilityai/stable-diffusion-2-1-base for the model details and license
     "stabilityai/stable-diffusion-2-1-base": {
+        "unet_config": "unet/config.json",
+        "unet": "unet/diffusion_pytorch_model.safetensors",
+        "text_encoder_config": "text_encoder/config.json",
+        "text_encoder": "text_encoder/model.safetensors",
+        "vae_config": "vae/config.json",
+        "vae": "vae/diffusion_pytorch_model.safetensors",
+        "diffusion_config": "scheduler/scheduler_config.json",
+        "tokenizer_vocab": "tokenizer/vocab.json",
+        "tokenizer_merges": "tokenizer/merges.txt",
+    },
+
+    # -------------------------------
+    # NEW MODELS (placeholders/example)
+    # -------------------------------
+
+    # 1. stabilityai/stable-diffusion-3.5-large
+    "stabilityai/stable-diffusion-3.5-large": {
+        "unet_config": "unet/config.json",
+        "unet": "unet/diffusion_pytorch_model.safetensors",
+        "text_encoder_config": "text_encoder/config.json",
+        "text_encoder": "text_encoder/model.safetensors",
+        "vae_config": "vae/config.json",
+        "vae": "vae/diffusion_pytorch_model.safetensors",
+        "diffusion_config": "scheduler/scheduler_config.json",
+        "tokenizer_vocab": "tokenizer/vocab.json",
+        "tokenizer_merges": "tokenizer/merges.txt",
+        # Depending on whether this model uses two text encoders
+        # you might also need "text_encoder_2" entries:
+        # "text_encoder_2_config": "text_encoder_2/config.json",
+        # "text_encoder_2": "text_encoder_2/model.safetensors",
+        # "tokenizer_2_vocab": "tokenizer_2/vocab.json",
+        # "tokenizer_2_merges": "tokenizer_2/merges.txt",
+    },
+
+    # 2. stabilityai/stable-diffusion-3.5-large-turbo
+    "stabilityai/stable-diffusion-3.5-large-turbo": {
+        "unet_config": "unet/config.json",
+        "unet": "unet/diffusion_pytorch_model.safetensors",
+        "text_encoder_config": "text_encoder/config.json",
+        "text_encoder": "text_encoder/model.safetensors",
+        "vae_config": "vae/config.json",
+        "vae": "vae/diffusion_pytorch_model.safetensors",
+        "diffusion_config": "scheduler/scheduler_config.json",
+        "tokenizer_vocab": "tokenizer/vocab.json",
+        "tokenizer_merges": "tokenizer/merges.txt",
+    },
+
+    # 3. stabilityai/stable-diffusion-3.5-medium
+    "stabilityai/stable-diffusion-3.5-medium": {
+        "unet_config": "unet/config.json",
+        "unet": "unet/diffusion_pytorch_model.safetensors",
+        "text_encoder_config": "text_encoder/config.json",
+        "text_encoder": "text_encoder/model.safetensors",
+        "vae_config": "vae/config.json",
+        "vae": "vae/diffusion_pytorch_model.safetensors",
+        "diffusion_config": "scheduler/scheduler_config.json",
+        "tokenizer_vocab": "tokenizer/vocab.json",
+        "tokenizer_merges": "tokenizer/merges.txt",
+    },
+
+    # 4. black-forest-labs/FLUX.1-schnell
+    "black-forest-labs/FLUX.1-schnell": {
         "unet_config": "unet/config.json",
         "unet": "unet/diffusion_pytorch_model.safetensors",
         "text_encoder_config": "text_encoder/config.json",
@@ -294,20 +356,51 @@ def load_autoencoder(key: str = _DEFAULT_MODEL, float16: bool = False):
     return model
 
 
-def load_diffusion_config(key: str = _DEFAULT_MODEL):
-    """Load the stable diffusion config from Hugging Face Hub."""
-    _check_key(key, "load_diffusion_config")
+# def load_diffusion_config(key: str = _DEFAULT_MODEL):
+#     """Load the stable diffusion config from Hugging Face Hub."""
+#     _check_key(key, "load_diffusion_config")
 
-    diffusion_config = _MODELS[key]["diffusion_config"]
-    with open(hf_hub_download(key, diffusion_config)) as f:
-        config = json.load(f)
+#     diffusion_config = _MODELS[key]["diffusion_config"]
+#     with open(hf_hub_download(key, diffusion_config)) as f:
+#         config = json.load(f)
 
-    return DiffusionConfig(
-        beta_start=config["beta_start"],
-        beta_end=config["beta_end"],
-        beta_schedule=config["beta_schedule"],
-        num_train_steps=config["num_train_timesteps"],
-    )
+#     return DiffusionConfig(
+#         beta_start=config["beta_start"],
+#         beta_end=config["beta_end"],
+#         beta_schedule=config["beta_schedule"],
+#         num_train_steps=config["num_train_timesteps"],
+#     )
+def read_json(file_path):
+    # Ensure file_path is a Path object for compatibility
+    file_path = Path(file_path)
+    with file_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+    
+def load_diffusion_config(model):
+    config = read_json(model / "scheduler" / "scheduler_config.json")
+    class_name = config.get("_class_name", "")
+
+    if class_name == "FlowMatchEulerDiscreteScheduler":
+        # Create a specialized diffusion config or object
+        # that does NOT rely on beta_start/beta_end/beta_schedule
+        return DiffusionConfigFlowMatch(
+            base_image_seq_len=config.get("base_image_seq_len"),
+            base_shift=config.get("base_shift"),
+            max_image_seq_len=config.get("max_image_seq_len"),
+            max_shift=config.get("max_shift"),
+            num_train_steps=config.get("num_train_timesteps", 1000),
+            shift=config.get("shift"),
+            use_dynamic_shifting=config.get("use_dynamic_shifting"),
+            diffusers_version=config.get("_diffusers_version")
+        )
+    else:
+        # Original stable diffusion code
+        return DiffusionConfig(
+            beta_start=config["beta_start"],
+            beta_end=config["beta_end"],
+            beta_schedule=config["beta_schedule"],
+            num_train_steps=config["num_train_timesteps"],
+        )
 
 
 def load_tokenizer(

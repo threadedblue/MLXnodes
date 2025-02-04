@@ -13,6 +13,11 @@ class MLXText2Image:
     Generates an image (grid if multiple) from a text prompt.
     """
 
+    models = ["stabilityai/stable-diffusion-3.5-large"
+              , "stabilityai/stable-diffusion-3.5-large-turbo"
+              , "stabilityai/stable-diffusion-3.5-medium"
+              , "black-forest-labs/FLUX.1-schnell"]
+
     @classmethod
     def INPUT_TYPES(cls):
        return {
@@ -22,8 +27,8 @@ class MLXText2Image:
                     "multiline": True,
                     "tooltip": "Text prompt describing what you want to generate.",
                 }),
-                "model": (["sd", "sdxl"], {
-                    "default": "sdxl",
+                "model": (MLXText2Image.models, {
+                    "default": MLXText2Image.models[3],
                     "tooltip": "Choose either standard SD or SDXL.",
                 }),
                 "n_images": ("INT", {
@@ -123,35 +128,20 @@ class MLXText2Image:
             seed = None  # Let the code pick a random seed
 
         print("# 1. Load appropriate stable diffusion model " + model)
-        if model == "sdxl":
-            sd = StableDiffusionXL("stabilityai/sdxl-turbo", float16=float16)
-        else:
-            # Or stable_diffusion, adjust path as needed
-            sd = StableDiffusion(
-                "stabilityai/stabilityai/sd3_medium.safetensors", float16=float16
-            )
+        sd = StableDiffusion(model, float16=float16)
+
+
 
         print("# 2. Optional: quantize")
         if quantize:
-            if model == "sdxl":
-                nn.quantize(sd.text_encoder_1, class_predicate=lambda _, m: isinstance(m, nn.Linear))
-                nn.quantize(sd.text_encoder_2, class_predicate=lambda _, m: isinstance(m, nn.Linear))
-                nn.quantize(sd.unet, group_size=32, bits=8)
-            else:
-                nn.quantize(sd.text_encoder, class_predicate=lambda _, m: isinstance(m, nn.Linear))
-                nn.quantize(sd.unet, group_size=32, bits=8)
+            nn.quantize(sd.text_encoder, class_predicate=lambda _, m: isinstance(m, nn.Linear))
+            nn.quantize(sd.unet, group_size=32, bits=8)
 
         print("# 3. Handle default steps/cfg based on the script logic")
-        if model == "sdxl":
-            if cfg == 0.0:
-                cfg = 0.0   # default from script
-            if steps == 0:
-                steps = 2   # default from script
-        else:
-            if cfg == 0.0:
-                cfg = 7.5   # default from script
-            if steps == 0:
-                steps = 50  # default from script
+        if cfg == 0.0:
+            cfg = 7.5   # default from script
+        if steps == 0:
+            steps = 50  # default from script
 
         # 4. Optionally preload
         if preload_models:
@@ -172,11 +162,7 @@ class MLXText2Image:
             mx.eval(x_t)
 
         # 6. Free up memory from text encoders / unet
-        if model == "sdxl":
-            del sd.text_encoder_1
-            del sd.text_encoder_2
-        else:
-            del sd.text_encoder
+        del sd.text_encoder
         del sd.unet
         del sd.sampler
 

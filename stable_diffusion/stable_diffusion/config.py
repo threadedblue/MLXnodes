@@ -63,3 +63,36 @@ class DiffusionConfig:
     beta_start: float = 0.00085
     beta_end: float = 0.012
     num_train_steps: int = 1000
+
+@dataclass
+class DiffusionConfigFlowMatch:
+    def __init__(self, base_image_seq_len, base_shift, max_image_seq_len, max_shift,
+                 num_train_steps, shift, use_dynamic_shifting, diffusers_version=None):
+        """
+        Configuration for FlowMatch-based diffusion schedulers.
+        
+        Args:
+            base_image_seq_len (int): The base image sequence length.
+            base_shift (float): The base shift value.
+            max_image_seq_len (int): The maximum image sequence length.
+            max_shift (float): The maximum shift value.
+            num_train_steps (int): Number of training timesteps.
+            shift (float): Shift parameter used by the scheduler.
+            use_dynamic_shifting (bool): Whether dynamic shifting is enabled.
+            diffusers_version (str, optional): Version of the diffusers library.
+        """
+        self.base_image_seq_len = base_image_seq_len
+        self.base_shift = base_shift
+        self.max_image_seq_len = max_image_seq_len
+        self.max_shift = max_shift
+        self.num_train_steps = num_train_steps
+        self.shift = shift
+        self.use_dynamic_shifting = use_dynamic_shifting
+        self.diffusers_version = diffusers_version
+
+    def __repr__(self):
+        return (f"DiffusionConfigFlowMatch(base_image_seq_len={self.base_image_seq_len}, "
+                f"base_shift={self.base_shift}, max_image_seq_len={self.max_image_seq_len}, "
+                f"max_shift={self.max_shift}, num_train_steps={self.num_train_steps}, "
+                f"shift={self.shift}, use_dynamic_shifting={self.use_dynamic_shifting}, "
+                f"diffusers_version={self.diffusers_version!r})")
