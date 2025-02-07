@@ -4,3 +4,4 @@ regex
 numpy
 tqdm
 Pillow
+pathlib

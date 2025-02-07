@@ -1,5 +1,6 @@
 # Copyright © 2023-2024 Apple Inc.
 
+import os
 import json
 from typing import Optional
 
@@ -12,6 +13,7 @@ from .config import AutoencoderConfig, CLIPTextModelConfig, DiffusionConfig, Dif
 from .tokenizer import Tokenizer
 from .unet import UNetModel
 from .vae import Autoencoder
+from pathlib import Path
 
 _DEFAULT_MODEL = "stabilityai/stable-diffusion-2-1-base"
 
@@ -356,33 +358,18 @@ def load_autoencoder(key: str = _DEFAULT_MODEL, float16: bool = False):
     return model
 
 
-# def load_diffusion_config(key: str = _DEFAULT_MODEL):
-#     """Load the stable diffusion config from Hugging Face Hub."""
-#     _check_key(key, "load_diffusion_config")
+def load_diffusion_config(key: str = _DEFAULT_MODEL):
+    """Load the diffusion scheduler config from Hugging Face Hub."""
+    _check_key(key, "load_diffusion_config")
 
-#     diffusion_config = _MODELS[key]["diffusion_config"]
-#     with open(hf_hub_download(key, diffusion_config)) as f:
-#         config = json.load(f)
+    diffusion_config = _MODELS[key]["diffusion_config"]
+    with open(hf_hub_download(key, diffusion_config)) as f:
+        config = json.load(f)
 
-#     return DiffusionConfig(
-#         beta_start=config["beta_start"],
-#         beta_end=config["beta_end"],
-#         beta_schedule=config["beta_schedule"],
-#         num_train_steps=config["num_train_timesteps"],
-#     )
-def read_json(file_path):
-    # Ensure file_path is a Path object for compatibility
-    file_path = Path(file_path)
-    with file_path.open("r", encoding="utf-8") as f:
-        return json.load(f)
-    
-def load_diffusion_config(model):
-    config = read_json(model / "scheduler" / "scheduler_config.json")
+    # Extract the class name (or use a default if not present)
     class_name = config.get("_class_name", "")
-
     if class_name == "FlowMatchEulerDiscreteScheduler":
-        # Create a specialized diffusion config or object
-        # that does NOT rely on beta_start/beta_end/beta_schedule
+        # This model uses flow matching – use the specialized config.
         return DiffusionConfigFlowMatch(
             base_image_seq_len=config.get("base_image_seq_len"),
             base_shift=config.get("base_shift"),
@@ -391,16 +378,52 @@ def load_diffusion_config(model):
             num_train_steps=config.get("num_train_timesteps", 1000),
             shift=config.get("shift"),
             use_dynamic_shifting=config.get("use_dynamic_shifting"),
-            diffusers_version=config.get("_diffusers_version")
+            diffusers_version=config.get("_diffusers_version"),
         )
     else:
-        # Original stable diffusion code
+        # Fallback to the standard diffusion configuration.
         return DiffusionConfig(
             beta_start=config["beta_start"],
             beta_end=config["beta_end"],
             beta_schedule=config["beta_schedule"],
             num_train_steps=config["num_train_timesteps"],
         )
+
+#     )
+
+# def read_json(file_path):
+#     # Ensure file_path is a Path object for compatibility
+#     file_path = Path(file_path)
+#     with file_path.open("r", encoding="utf-8") as f:
+#         return json.load(f)
+    
+# def load_diffusion_config(model):
+#     config_path = os.path.join(model, "scheduler", "scheduler_config.json")
+#     config = read_json(config_path)
+#     print("config=", config)
+#     class_name = config.get("_class_name", "")
+
+#     if class_name == "FlowMatchEulerDiscreteScheduler":
+#         # Create a specialized diffusion config or object
+#         # that does NOT rely on beta_start/beta_end/beta_schedule
+#         return DiffusionConfigFlowMatch(
+#             base_image_seq_len=config.get("base_image_seq_len"),
+#             base_shift=config.get("base_shift"),
+#             max_image_seq_len=config.get("max_image_seq_len"),
+#             max_shift=config.get("max_shift"),
+#             num_train_steps=config.get("num_train_timesteps", 1000),
+#             shift=config.get("shift"),
+#             use_dynamic_shifting=config.get("use_dynamic_shifting"),
+#             diffusers_version=config.get("_diffusers_version")
+#         )
+#     else:
+#         # Original stable diffusion code
+#         return DiffusionConfig(
+#             beta_start=config["beta_start"],
+#             beta_end=config["beta_end"],
+#             beta_schedule=config["beta_schedule"],
+#             num_train_steps=config["num_train_timesteps"],
+#         )
 
 
 def load_tokenizer(
