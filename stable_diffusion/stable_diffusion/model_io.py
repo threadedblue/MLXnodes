@@ -14,101 +14,7 @@ from .tokenizer import Tokenizer
 from .unet import UNetModel
 from .vae import Autoencoder
 from pathlib import Path
-
-_DEFAULT_MODEL = "stabilityai/stable-diffusion-2-1-base"
-
-_MODELS = {
-    # Existing models (example from your MLX code)
-    "stabilityai/sdxl-turbo": {
-        "unet_config": "unet/config.json",
-        "unet": "unet/diffusion_pytorch_model.safetensors",
-        "text_encoder_config": "text_encoder/config.json",
-        "text_encoder": "text_encoder/model.safetensors",
-        "text_encoder_2_config": "text_encoder_2/config.json",
-        "text_encoder_2": "text_encoder_2/model.safetensors",
-        "vae_config": "vae/config.json",
-        "vae": "vae/diffusion_pytorch_model.safetensors",
-        "diffusion_config": "scheduler/scheduler_config.json",
-        "tokenizer_vocab": "tokenizer/vocab.json",
-        "tokenizer_merges": "tokenizer/merges.txt",
-        "tokenizer_2_vocab": "tokenizer_2/vocab.json",
-        "tokenizer_2_merges": "tokenizer_2/merges.txt",
-    },
-    "stabilityai/stable-diffusion-2-1-base": {
-        "unet_config": "unet/config.json",
-        "unet": "unet/diffusion_pytorch_model.safetensors",
-        "text_encoder_config": "text_encoder/config.json",
-        "text_encoder": "text_encoder/model.safetensors",
-        "vae_config": "vae/config.json",
-        "vae": "vae/diffusion_pytorch_model.safetensors",
-        "diffusion_config": "scheduler/scheduler_config.json",
-        "tokenizer_vocab": "tokenizer/vocab.json",
-        "tokenizer_merges": "tokenizer/merges.txt",
-    },
-
-    # -------------------------------
-    # NEW MODELS (placeholders/example)
-    # -------------------------------
-
-    # 1. stabilityai/stable-diffusion-3.5-large
-    "stabilityai/stable-diffusion-3.5-large": {
-        "unet_config": "unet/config.json",
-        "unet": "unet/diffusion_pytorch_model.safetensors",
-        "text_encoder_config": "text_encoder/config.json",
-        "text_encoder": "text_encoder/model.safetensors",
-        "vae_config": "vae/config.json",
-        "vae": "vae/diffusion_pytorch_model.safetensors",
-        "diffusion_config": "scheduler/scheduler_config.json",
-        "tokenizer_vocab": "tokenizer/vocab.json",
-        "tokenizer_merges": "tokenizer/merges.txt",
-        # Depending on whether this model uses two text encoders
-        # you might also need "text_encoder_2" entries:
-        # "text_encoder_2_config": "text_encoder_2/config.json",
-        # "text_encoder_2": "text_encoder_2/model.safetensors",
-        # "tokenizer_2_vocab": "tokenizer_2/vocab.json",
-        # "tokenizer_2_merges": "tokenizer_2/merges.txt",
-    },
-
-    # 2. stabilityai/stable-diffusion-3.5-large-turbo
-    "stabilityai/stable-diffusion-3.5-large-turbo": {
-        "unet_config": "unet/config.json",
-        "unet": "unet/diffusion_pytorch_model.safetensors",
-        "text_encoder_config": "text_encoder/config.json",
-        "text_encoder": "text_encoder/model.safetensors",
-        "vae_config": "vae/config.json",
-        "vae": "vae/diffusion_pytorch_model.safetensors",
-        "diffusion_config": "scheduler/scheduler_config.json",
-        "tokenizer_vocab": "tokenizer/vocab.json",
-        "tokenizer_merges": "tokenizer/merges.txt",
-    },
-
-    # 3. stabilityai/stable-diffusion-3.5-medium
-    "stabilityai/stable-diffusion-3.5-medium": {
-        "unet_config": "unet/config.json",
-        "unet": "unet/diffusion_pytorch_model.safetensors",
-        "text_encoder_config": "text_encoder/config.json",
-        "text_encoder": "text_encoder/model.safetensors",
-        "vae_config": "vae/config.json",
-        "vae": "vae/diffusion_pytorch_model.safetensors",
-        "diffusion_config": "scheduler/scheduler_config.json",
-        "tokenizer_vocab": "tokenizer/vocab.json",
-        "tokenizer_merges": "tokenizer/merges.txt",
-    },
-
-    # 4. black-forest-labs/FLUX.1-schnell
-    "black-forest-labs/FLUX.1-schnell": {
-        "unet_config": "unet/config.json",
-        "unet": "unet/diffusion_pytorch_model.safetensors",
-        "text_encoder_config": "text_encoder/config.json",
-        "text_encoder": "text_encoder/model.safetensors",
-        "vae_config": "vae/config.json",
-        "vae": "vae/diffusion_pytorch_model.safetensors",
-        "diffusion_config": "scheduler/scheduler_config.json",
-        "tokenizer_vocab": "tokenizer/vocab.json",
-        "tokenizer_merges": "tokenizer/merges.txt",
-    },
-}
-
+from .constants import _DEFAULT_MODEL, _MODELS
 
 def map_unet_weights(key, value):
     # Map up/downsampling
@@ -303,6 +209,8 @@ def load_text_encoder(
 
     # Download the config and create the model
     text_encoder_config = _MODELS[key][config_key]
+    print("Downloaded file path==>", text_encoder_config)
+
     with open(hf_hub_download(key, text_encoder_config)) as f:
         config = json.load(f)
 
